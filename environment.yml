@@ -1,0 +1,13 @@
+name: vgf
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  - ffmpeg
+  - pip:
+      - flask
+      - git+https://github.com/openai/whisper.git
+      - edge-tts
+      - llama-cpp-python
