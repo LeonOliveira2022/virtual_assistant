@@ -4,10 +4,14 @@ import os, uuid, asyncio
 from models.asr_model import transcribe_audio
 from models.chat_model import generate_reply
 from models.tts_model import generate_speech
+from utils.emotion import EmotionSystem
+from utils.persona import decide_output_type
 
 HISTORY_FILE = "history.txt"
 UPLOAD_FOLDER = "static/audio"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+emotion_system = EmotionSystem()
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -46,17 +50,28 @@ def chat():
     with open(HISTORY_FILE, "w", encoding="utf-8") as f:
         f.write(history)
 
-    audio_file = f"reply_{uuid.uuid4()}.wav"
-    audio_path = os.path.join(UPLOAD_FOLDER, audio_file)
-    try:
-        asyncio.run(generate_speech(answer, audio_path))
-    except Exception as e:
-        print("[TTS ERROR]", e)
-        audio_file = None
+    # 💡 情绪更新
+    emotion_system.update_emotion(user_input, answer)
+    emotion = emotion_system.get_current_emotion()
 
+    # 💡 判断输出类型
+    output_type = decide_output_type(answer, emotion)
+
+    audio_file = None
+    if output_type == "voice":
+        audio_file = f"reply_{uuid.uuid4()}.wav"
+        audio_path = os.path.join(app.config['UPLOAD_FOLDER'], audio_file)
+        try:
+            asyncio.run(generate_speech(answer, audio_path))
+        except Exception as e:
+            print("[ERROR] TTS failed:", e)
+            audio_file = None    
+    
     return jsonify({
         "message": answer,
-        "audio_url": f"/audio/{audio_file}" if audio_file else None
+        "output_type": output_type,
+        "audio_url": f"/audio/{audio_file}" if audio_file else None,
+        "emotion": emotion
     })
 
 @app.route("/api/speech-to-text", methods=["POST"])
