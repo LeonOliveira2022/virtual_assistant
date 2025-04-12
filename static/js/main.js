@@ -188,7 +188,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     .then(res => res.json())
                     .then(data => {
                         if (data.text) {
-                            sendMessage(data.text, true, data.audio_url);
+                            const userAudioURL = URL.createObjectURL(blob);
+                            sendMessage(data.text, true, userAudioURL);
                         }
                     });
                 };

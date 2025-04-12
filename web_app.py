@@ -61,17 +61,17 @@ def chat():
 
 @app.route("/api/speech-to-text", methods=["POST"])
 def speech_to_text():
-    if 'audio' not in request.files:
+    uploaded_file = request.files.get('audio')
+    if not uploaded_file:
         return jsonify({'error': 'No audio file provided'}), 400
 
-    audio_file = request.files['audio']
-    temp_path = os.path.join(UPLOAD_FOLDER, f"temp_{uuid.uuid4()}.webm")
-    audio_file.save(temp_path)
+    filename = f"input_{uuid.uuid4().hex}.webm"
+    saved_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    uploaded_file.save(saved_path)
 
     try:
-        text = transcribe_audio(temp_path)
-        os.remove(temp_path)
-        return jsonify({"text": text})
+        text = transcribe_audio(saved_path)
+        return jsonify({"text": text, "file": filename})
     except Exception as e:
         print("[ASR ERROR]", e)
         return jsonify({"error": str(e)}), 500
